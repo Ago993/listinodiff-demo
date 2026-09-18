@@ -1,4 +1,4 @@
-const $=id=>document.getElementById(id);
+﻿const $=id=>document.getElementById(id);
 let oldText="",newText="",lastResult=null;
 
 const labels={
@@ -10,11 +10,11 @@ const labels={
 };
 
 function money(v){
-  return v==null?"—":new Intl.NumberFormat("it-IT",{style:"currency",currency:"EUR"}).format(v);
+  return v==null?"â€”":new Intl.NumberFormat("it-IT",{style:"currency",currency:"EUR"}).format(v);
 }
-function pct(v){return v==null?"—":(v>0?"+":"")+v.toFixed(1)+"%";}
+function pct(v){return v==null?"â€”":(v>0?"+":"")+v.toFixed(1)+"%";}
 function delta(v){
-  if(v==null) return "—";
+  if(v==null) return "â€”";
   return (v>0?"+":"")+new Intl.NumberFormat("it-IT",{style:"currency",currency:"EUR"}).format(v);
 }
 function refreshAnalyze(){ $("analyzeBtn").disabled=!(oldText&&newText); }
@@ -62,6 +62,7 @@ function analyze(){
     $("statusFilter").value="all";
     renderRows();
     $("results").classList.remove("hidden");
+    $("emptyState").classList.add("hidden");
     $("results").scrollIntoView({behavior:"smooth",block:"start"});
   }catch(err){alert(err.message);}
 }
@@ -100,3 +101,4 @@ function escapeHtml(value){
   return String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
 }
 if(new URLSearchParams(location.search).get("demo")==="1") $("sampleBtn").click();
+
