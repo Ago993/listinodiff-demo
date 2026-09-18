@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ListinoDiff — Confronto listini CSV</title>
+  <meta name="description" content="Demo gratuita: confronta due listini CSV e individua variazioni di prezzo, nuovi articoli e prodotti rimossi.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <span class="eyebrow">DEMO PORTFOLIO · AUTOMAZIONE DATI</span>
+      <h1>ListinoDiff</h1>
+      <p>Confronta due listini CSV in pochi secondi. Evidenzia aumenti, ribassi, nuovi articoli e prodotti rimossi.</p>
+      <div class="privacy">🔒 I file vengono elaborati nel browser: questa demo non li carica su un server.</div>
+    </header>
+
+    <section class="panel">
+      <div class="upload-grid">
+        <label class="upload-card">
+          <strong>Listino precedente</strong>
+          <span>CSV con SKU, nome e prezzo</span>
+          <input id="oldFile" type="file" accept=".csv,text/csv">
+          <small id="oldName">Nessun file selezionato</small>
+        </label>
+        <label class="upload-card">
+          <strong>Listino nuovo</strong>
+          <span>CSV con SKU, nome e prezzo</span>
+          <input id="newFile" type="file" accept=".csv,text/csv">
+          <small id="newName">Nessun file selezionato</small>
+        </label>
+      </div>
+      <div class="actions">
+        <button id="sampleBtn" class="secondary">Carica dati demo</button>
+        <button id="analyzeBtn" class="primary" disabled>Confronta listini</button>
+      </div>
+      <p class="hint">Riconoscimento automatico di intestazioni comuni: SKU/codice, prodotto/nome, prezzo/costo.</p>
+    </section>
+
+    <section id="results" class="results hidden">
+      <div class="summary" id="summary"></div>
+      <div class="toolbar">
+        <select id="statusFilter" aria-label="Filtra risultati">
+          <option value="all">Tutte le variazioni</option>
+          <option value="increased">Aumenti</option>
+          <option value="decreased">Ribassi</option>
+          <option value="new">Nuovi articoli</option>
+          <option value="removed">Rimossi</option>
+          <option value="unchanged">Invariati</option>
+        </select>
+        <button id="exportBtn" class="secondary">Esporta report CSV</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>SKU</th><th>Prodotto</th><th>Prima</th><th>Ora</th><th>Δ</th><th>Δ %</th><th>Stato</th></tr></thead>
+          <tbody id="resultRows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer>Demo dimostrativa · Sviluppo software personalizzato e automazioni dati</footer>
+  </main>
+  <script src="core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
