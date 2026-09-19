@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>ListinoDiff — Confronto listini CSV</title>
+  <title>ListinoDiff - Confronto listini CSV</title>
   <meta name="description" content="Confronta due listini CSV e individua aumenti, ribassi, nuovi articoli e prodotti rimossi.">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=20260919-4">
 </head>
 <body>
   <header class="topbar">
@@ -24,12 +24,12 @@
   <main class="shell">
     <section class="intro">
       <div>
-        <span class="eyebrow">LISTINI · CONTROLLO PREZZI · AUTOMAZIONE DATI</span>
-        <h1>Scopri cosa è cambiato tra due listini, senza confrontarli a mano.</h1>
+        <span class="eyebrow">LISTINI - CONTROLLO PREZZI - AUTOMAZIONE DATI</span>
+        <h1>Scopri cosa &egrave; cambiato tra due listini, senza confrontarli a mano.</h1>
         <p>Carica il listino precedente e quello aggiornato. ListinoDiff individua subito aumenti, ribassi, nuovi articoli e prodotti rimossi.</p>
       </div>
       <div class="intro-note">
-        <span class="intro-note-icon">✓</span>
+        <span class="intro-note-icon">&#10003;</span>
         <div><strong>Privacy by design</strong><small>I CSV restano nel browser.</small></div>
       </div>
     </section>
@@ -43,13 +43,14 @@
           </div>
           <span class="ready-pill">CSV</span>
         </div>
+
         <div class="panel-section">
           <div class="section-title">
             <span class="step">01</span>
             <div><strong>Listino precedente</strong><small>La base da cui partire</small></div>
           </div>
           <label class="file-card">
-            <span class="file-icon">←</span>
+            <span class="file-icon">&larr;</span>
             <div><strong>Seleziona CSV</strong><small id="oldName">Nessun file selezionato</small></div>
             <input id="oldFile" type="file" accept=".csv,text/csv">
           </label>
@@ -61,7 +62,7 @@
             <div><strong>Listino aggiornato</strong><small>Il nuovo file da verificare</small></div>
           </div>
           <label class="file-card">
-            <span class="file-icon accent">→</span>
+            <span class="file-icon accent">&rarr;</span>
             <div><strong>Seleziona CSV</strong><small id="newName">Nessun file selezionato</small></div>
             <input id="newFile" type="file" accept=".csv,text/csv">
           </label>
@@ -70,8 +71,9 @@
         <div class="panel-section compact">
           <div class="info-row">
             <span class="info-dot"></span>
-            <p>Riconosce automaticamente intestazioni comuni come SKU, codice, prodotto, nome, prezzo e costo.</p>
+            <p>Riconosce intestazioni comuni e CSV separati da virgola, punto e virgola o tab.</p>
           </div>
+          <div id="errorBox" class="error-box hidden"></div>
         </div>
 
         <div class="panel-footer">
@@ -95,9 +97,11 @@
               <option value="removed">Rimossi</option>
               <option value="unchanged">Invariati</option>
             </select>
-            <button id="exportBtn" class="button secondary-button">Esporta CSV</button>
+            <button id="exportBtn" class="button secondary-button">Esporta report</button>
+            <button id="exportCurrentBtn" class="button secondary-button">Esporta listino</button>
           </div>
         </div>
+
         <section id="results" class="results hidden">
           <div class="analysis-head">
             <div>
@@ -120,27 +124,25 @@
             </div>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>SKU</th><th>Prodotto</th><th>Prima</th><th>Ora</th><th>Δ</th><th>Δ %</th><th>Stato</th></tr></thead>
+                <thead><tr><th>SKU</th><th>Prodotto</th><th>Prima</th><th>Ora</th><th>Delta</th><th>Delta %</th><th>Stato</th></tr></thead>
                 <tbody id="resultRows"></tbody>
               </table>
             </div>
           </div>
 
-          <footer>ListinoDiff · demo dimostrativa di automazione dati</footer>
+          <footer>ListinoDiff - demo dimostrativa di automazione dati</footer>
         </section>
 
         <section id="emptyState" class="empty-state">
-          <div class="empty-visual">
-            <span></span><span></span><span></span>
-          </div>
-          <strong>Il confronto apparirà qui</strong>
+          <div class="empty-visual"><span></span><span></span><span></span></div>
+          <strong>Il confronto apparir&agrave; qui</strong>
           <p>Carica due listini oppure usa i dati demo per vedere immediatamente il risultato.</p>
         </section>
       </section>
     </section>
   </main>
 
-  <script src="core.js"></script>
-  <script src="app.js"></script>
+  <script src="core.js?v=20260919-4"></script>
+  <script src="app.js?v=20260919-4"></script>
 </body>
 </html>

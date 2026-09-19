@@ -8,15 +8,28 @@
       .normalize("NFD").replace(/[\u0300-\u036f]/g,"");
   }
 
+  function detectDelimiter(text){
+    const line=String(text).replace(/^\uFEFF/,"").split(/\r?\n/).find(x=>x.trim())||"";
+    const counts={",":0,";":0,"\t":0};
+    let quoted=false;
+    for(let i=0;i<line.length;i++){
+      const ch=line[i];
+      if(ch==='"') quoted=!quoted;
+      else if(!quoted && Object.prototype.hasOwnProperty.call(counts,ch)) counts[ch]++;
+    }
+    return Object.entries(counts).sort((a,b)=>b[1]-a[1])[0][0];
+  }
+
   function parseCSV(text){
     const rows=[]; let row=[]; let field=""; let quoted=false;
     const s=String(text).replace(/^\uFEFF/,"");
+    const delimiter=detectDelimiter(s);
     for(let i=0;i<s.length;i++){
       const ch=s[i], next=s[i+1];
       if(ch==='"'){
         if(quoted && next==='"'){field+='"';i++;}
         else quoted=!quoted;
-      }else if(ch==="," && !quoted){row.push(field);field="";}
+      }else if(ch===delimiter && !quoted){row.push(field);field="";}
       else if((ch==="\n" || ch==="\r") && !quoted){
         if(ch==="\r" && next==="\n") i++;
         row.push(field); field="";
@@ -28,6 +41,7 @@
     if(row.some(v=>String(v).trim()!=="")) rows.push(row);
     if(rows.length<2) throw new Error("Il CSV non contiene righe dati.");
     const headers=rows[0].map(h=>String(h).trim());
+    if(headers.length<2) throw new Error("Separatore CSV non riconosciuto.");
     return rows.slice(1).map(r=>{
       const obj={};
       headers.forEach((h,i)=>obj[h]=String(r[i]??"").trim());
@@ -57,8 +71,14 @@
 
   function schema(rows){
     const headers=Object.keys(rows[0]||{});
-    const sku=detectColumn(headers,["sku","codice","codice articolo","id","product id"]);
+    const sku=detectColumn(headers,["sku","codice","codice articolo","codice prodotto","id","product id"]);
     const name=detectColumn(headers,["nome","prodotto","descrizione","articolo","name","product"]);
+    const reportOld=detectColumn(headers,["prezzo precedente"]);
+    const reportNew=detectColumn(headers,["prezzo nuovo"]);
+    const reportStatus=detectColumn(headers,["stato"]);
+    if(reportOld && reportNew && reportStatus){
+      throw new Error("Questo file e un report di confronto. Per ottenere un CSV reimportabile usa il pulsante 'Esporta listino'.");
+    }
     const price=detectColumn(headers,["prezzo","costo","price","unit price","prezzo unitario"]);
     if(!sku || !price) throw new Error("Servono almeno una colonna SKU/codice e una colonna prezzo/costo.");
     return {sku,name,price};
@@ -73,8 +93,8 @@
       const o=oldMap.get(sku), n=newMap.get(sku);
       const oldPrice=o?parsePrice(o[a.price]):NaN;
       const newPrice=n?parsePrice(n[b.price]):NaN;
-      if(o && Number.isNaN(oldPrice)) throw new Error("Prezzo non valido nel vecchio listino per SKU "+sku);
-      if(n && Number.isNaN(newPrice)) throw new Error("Prezzo non valido nel nuovo listino per SKU "+sku);
+      if(o && Number.isNaN(oldPrice)) throw new Error("Prezzo non valido nel vecchio listino per SKU "+sku+".");
+      if(n && Number.isNaN(newPrice)) throw new Error("Prezzo non valido nel nuovo listino per SKU "+sku+".");
       let status="unchanged";
       if(!o) status="new";
       else if(!n) status="removed";
@@ -84,7 +104,7 @@
       const pct=o&&n&&oldPrice!==0?(delta/oldPrice)*100:null;
       return {
         sku,
-        name:String((n&&n[b.name])||(o&&o[a.name])||""),
+        name:String((n&&b.name&&n[b.name])||(o&&a.name&&o[a.name])||""),
         oldPrice:o?oldPrice:null,
         newPrice:n?newPrice:null,
         delta,pct,status
@@ -97,7 +117,7 @@
 
   function escapeCsv(value){
     const s=String(value??"");
-    return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;
+    return /[",;\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;
   }
 
   function reportCSV(items){
@@ -113,5 +133,13 @@
     return [head,...rows].map(r=>r.map(escapeCsv).join(",")).join("\n");
   }
 
-  return {parseCSV,parsePrice,compare,reportCSV};
+  function currentListCSV(items){
+    const head=["sku","nome","prezzo"];
+    const rows=items
+      .filter(x=>x.newPrice!=null && x.status!=="removed")
+      .map(x=>[x.sku,x.name,x.newPrice.toFixed(2)]);
+    return [head,...rows].map(r=>r.map(escapeCsv).join(",")).join("\n");
+  }
+
+  return {parseCSV,parsePrice,compare,reportCSV,currentListCSV};
 });

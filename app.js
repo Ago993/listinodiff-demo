@@ -18,14 +18,33 @@ function delta(v){
   return (v>0?"+":"")+new Intl.NumberFormat("it-IT",{style:"currency",currency:"EUR"}).format(v);
 }
 function refreshAnalyze(){ $("analyzeBtn").disabled=!(oldText&&newText); }
+function showError(message){
+  $("errorBox").textContent=message;
+  $("errorBox").classList.remove("hidden");
+}
+function clearError(){ $("errorBox").classList.add("hidden"); }
+
+async function readTextFile(file){
+  const buffer=await file.arrayBuffer();
+  try{
+    return new TextDecoder("utf-8",{fatal:true}).decode(buffer);
+  }catch{
+    return new TextDecoder("windows-1252").decode(buffer);
+  }
+}
 
 async function readFile(input,nameTarget,kind){
   const file=input.files[0];
   if(!file) return;
-  const text=await file.text();
-  if(kind==="old") oldText=text; else newText=text;
-  $(nameTarget).textContent=file.name;
-  refreshAnalyze();
+  try{
+    const text=await readTextFile(file);
+    if(kind==="old") oldText=text; else newText=text;
+    $(nameTarget).textContent=file.name;
+    clearError();
+    refreshAnalyze();
+  }catch(err){
+    showError("Impossibile leggere il file: "+err.message);
+  }
 }
 $("oldFile").addEventListener("change",e=>readFile(e.target,"oldName","old"));
 $("newFile").addEventListener("change",e=>readFile(e.target,"newName","new"));
@@ -38,23 +57,33 @@ $("sampleBtn").addEventListener("click",async()=>{
     ]);
     $("oldName").textContent="old_prices.csv (demo)";
     $("newName").textContent="new_prices.csv (demo)";
+    clearError();
     refreshAnalyze();
     analyze();
-  }catch(err){alert("Impossibile caricare i dati demo: "+err.message);}
+  }catch(err){showError("Impossibile caricare i dati demo: "+err.message);}
 });
 
 $("analyzeBtn").addEventListener("click",analyze);
 $("statusFilter").addEventListener("change",renderRows);
 $("exportBtn").addEventListener("click",()=>{
   if(!lastResult) return;
-  const blob=new Blob([ListinoDiff.reportCSV(lastResult.items)],{type:"text/csv;charset=utf-8"});
-  const url=URL.createObjectURL(blob), a=document.createElement("a");
-  a.href=url; a.download="report-variazioni-listino.csv"; a.click();
-  URL.revokeObjectURL(url);
+  downloadCSV(ListinoDiff.reportCSV(lastResult.items),"listinodiff-report.csv");
 });
+$("exportCurrentBtn").addEventListener("click",()=>{
+  if(!lastResult) return;
+  downloadCSV(ListinoDiff.currentListCSV(lastResult.items),"listino-aggiornato.csv");
+});
+
+function downloadCSV(text,name){
+  const blob=new Blob(["\uFEFF"+text],{type:"text/csv;charset=utf-8"});
+  const url=URL.createObjectURL(blob), a=document.createElement("a");
+  a.href=url; a.download=name; a.click();
+  URL.revokeObjectURL(url);
+}
 
 function analyze(){
   try{
+    clearError();
     const oldRows=ListinoDiff.parseCSV(oldText);
     const newRows=ListinoDiff.parseCSV(newText);
     lastResult=ListinoDiff.compare(oldRows,newRows);
@@ -64,7 +93,9 @@ function analyze(){
     $("results").classList.remove("hidden");
     $("emptyState").classList.add("hidden");
     $("results").scrollIntoView({behavior:"smooth",block:"start"});
-  }catch(err){alert(err.message);}
+  }catch(err){
+    showError(err.message+" Formati supportati: CSV separati da virgola, punto e virgola o tab.");
+  }
 }
 
 function renderSummary(){
@@ -101,4 +132,3 @@ function escapeHtml(value){
   return String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
 }
 if(new URLSearchParams(location.search).get("demo")==="1") $("sampleBtn").click();
-
