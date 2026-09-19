@@ -1,5 +1,6 @@
 const $=id=>document.getElementById(id);
 let oldText="",newText="",lastResult=null;
+const MAX_FILE_BYTES=5*1024*1024;
 
 const labels={
   increased:"Aumento",
@@ -17,14 +18,24 @@ function delta(v){
   if(v==null) return "-";
   return (v>0?"+":"")+new Intl.NumberFormat("it-IT",{style:"currency",currency:"EUR"}).format(v);
 }
+function make(tag,text,className){
+  const el=document.createElement(tag);
+  if(text!==undefined&&text!==null) el.textContent=String(text);
+  if(className) el.className=className;
+  return el;
+}
 function refreshAnalyze(){ $("analyzeBtn").disabled=!(oldText&&newText); }
 function showError(message){
   $("errorBox").textContent=message;
   $("errorBox").classList.remove("hidden");
 }
-function clearError(){ $("errorBox").classList.add("hidden"); }
+function clearError(){
+  $("errorBox").textContent="";
+  $("errorBox").classList.add("hidden");
+}
 
 async function readTextFile(file){
+  if(file.size>MAX_FILE_BYTES) throw new Error("File troppo grande. Limite: 5 MB.");
   const buffer=await file.arrayBuffer();
   try{
     return new TextDecoder("utf-8",{fatal:true}).decode(buffer);
@@ -43,17 +54,27 @@ async function readFile(input,nameTarget,kind){
     clearError();
     refreshAnalyze();
   }catch(err){
+    if(kind==="old") oldText=""; else newText="";
+    $(nameTarget).textContent="Nessun file selezionato";
+    refreshAnalyze();
     showError("Impossibile leggere il file: "+err.message);
   }
 }
+
 $("oldFile").addEventListener("change",e=>readFile(e.target,"oldName","old"));
 $("newFile").addEventListener("change",e=>readFile(e.target,"newName","new"));
 
 $("sampleBtn").addEventListener("click",async()=>{
   try{
     [oldText,newText]=await Promise.all([
-      fetch("samples/old_prices.csv").then(r=>r.text()),
-      fetch("samples/new_prices.csv").then(r=>r.text())
+      fetch("samples/old_prices.csv",{cache:"no-store"}).then(r=>{
+        if(!r.ok) throw new Error("Vecchio listino demo non disponibile.");
+        return r.text();
+      }),
+      fetch("samples/new_prices.csv",{cache:"no-store"}).then(r=>{
+        if(!r.ok) throw new Error("Nuovo listino demo non disponibile.");
+        return r.text();
+      })
     ]);
     $("oldName").textContent="old_prices.csv (demo)";
     $("newName").textContent="new_prices.csv (demo)";
@@ -66,19 +87,16 @@ $("sampleBtn").addEventListener("click",async()=>{
 $("analyzeBtn").addEventListener("click",analyze);
 $("statusFilter").addEventListener("change",renderRows);
 $("exportBtn").addEventListener("click",()=>{
-  if(!lastResult) return;
-  downloadCSV(ListinoDiff.reportCSV(lastResult.items),"listinodiff-report.csv");
+  if(lastResult) downloadCSV(ListinoDiff.reportCSV(lastResult.items),"listinodiff-report.csv");
 });
 $("exportCurrentBtn").addEventListener("click",()=>{
-  if(!lastResult) return;
-  downloadCSV(ListinoDiff.currentListCSV(lastResult.items),"listino-aggiornato.csv");
+  if(lastResult) downloadCSV(ListinoDiff.currentListCSV(lastResult.items),"listino-aggiornato.csv");
 });
 
 function downloadCSV(text,name){
   const blob=new Blob(["\uFEFF"+text],{type:"text/csv;charset=utf-8"});
-  const url=URL.createObjectURL(blob), a=document.createElement("a");
-  a.href=url; a.download=name; a.click();
-  URL.revokeObjectURL(url);
+  const url=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=url;a.download=name;a.click();URL.revokeObjectURL(url);
 }
 
 function analyze(){
@@ -107,28 +125,47 @@ function renderSummary(){
     ["Nuovi",s.new],
     ["Rimossi",s.removed]
   ];
-  $("summary").innerHTML=cards.map(([k,v])=>
-    '<div class="metric"><span>'+k+'</span><strong>'+v+'</strong></div>'
-  ).join("");
+  const container=$("summary");
+  container.replaceChildren();
+  cards.forEach(([label,value])=>{
+    const card=make("div",null,"metric");
+    card.append(make("span",label),make("strong",value));
+    container.append(card);
+  });
+}
+
+function appendCell(row,text,className){
+  const td=make("td",text,className);
+  row.append(td);
 }
 
 function renderRows(){
   const filter=$("statusFilter").value;
   const rows=lastResult.items.filter(x=>filter==="all"||x.status===filter);
-  $("resultRows").innerHTML=rows.length?rows.map(x=>{
+  const tbody=$("resultRows");
+  tbody.replaceChildren();
+
+  if(!rows.length){
+    const tr=document.createElement("tr");
+    const td=make("td","Nessun elemento per questo filtro.","empty");
+    td.colSpan=7;tr.append(td);tbody.append(tr);
+    return;
+  }
+
+  rows.forEach(x=>{
+    const tr=document.createElement("tr");
     const cls=x.delta>0?"up":x.delta<0?"down":"";
-    return '<tr>'+
-      '<td>'+escapeHtml(x.sku)+'</td>'+
-      '<td>'+escapeHtml(x.name)+'</td>'+
-      '<td class="amount">'+money(x.oldPrice)+'</td>'+
-      '<td class="amount">'+money(x.newPrice)+'</td>'+
-      '<td class="delta '+cls+'">'+delta(x.delta)+'</td>'+
-      '<td class="delta '+cls+'">'+pct(x.pct)+'</td>'+
-      '<td><span class="badge '+x.status+'">'+labels[x.status]+'</span></td>'+
-    '</tr>';
-  }).join(""):'<tr><td class="empty" colspan="7">Nessun elemento per questo filtro.</td></tr>';
+    appendCell(tr,x.sku);
+    appendCell(tr,x.name);
+    appendCell(tr,money(x.oldPrice),"amount");
+    appendCell(tr,money(x.newPrice),"amount");
+    appendCell(tr,delta(x.delta),"delta "+cls);
+    appendCell(tr,pct(x.pct),"delta "+cls);
+    const statusTd=document.createElement("td");
+    statusTd.append(make("span",labels[x.status],"badge "+x.status));
+    tr.append(statusTd);
+    tbody.append(tr);
+  });
 }
-function escapeHtml(value){
-  return String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
-}
+
 if(new URLSearchParams(location.search).get("demo")==="1") $("sampleBtn").click();
