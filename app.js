@@ -1,4 +1,4 @@
-﻿const $=id=>document.getElementById(id);
+const $=id=>document.getElementById(id);
 let oldText="",newText="",lastResult=null;
 
 const labels={
@@ -10,11 +10,11 @@ const labels={
 };
 
 function money(v){
-  return v==null?"â€”":new Intl.NumberFormat("it-IT",{style:"currency",currency:"EUR"}).format(v);
+  return v==null?"-":new Intl.NumberFormat("it-IT",{style:"currency",currency:"EUR"}).format(v);
 }
-function pct(v){return v==null?"â€”":(v>0?"+":"")+v.toFixed(1)+"%";}
+function pct(v){return v==null?"-":(v>0?"+":"")+v.toFixed(1)+"%";}
 function delta(v){
-  if(v==null) return "â€”";
+  if(v==null) return "-";
   return (v>0?"+":"")+new Intl.NumberFormat("it-IT",{style:"currency",currency:"EUR"}).format(v);
 }
 function refreshAnalyze(){ $("analyzeBtn").disabled=!(oldText&&newText); }
